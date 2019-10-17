@@ -5,6 +5,7 @@ import (
 	"os"
 	"fmt"
 	"strings"
+	"errors"
 )
 
 func main(){
@@ -16,31 +17,44 @@ func main(){
 		return
 	}
 
-	stringSlice := strings.Split(strigArg, "")
-	isValid := validateBrackets(stringArg)
+	stringSlice := strings.Split(stringArg, "")
+	isValid, err := validateBrackets(stringSlice)
+
+	if err != nil {
+		fmt.Printf("Invalid Bracket usage: %s", err.Error())
+	} else if isValid {
+		fmt.Println("Valid Brackets!")
+	}
 
 }
 
-func validateBrackets (stringSlice []string) (bool, error) {
+
+func validateBrackets(stringSlice []string) (bool, error) {
 	
-	openBracketIndex = -1
+	openBracketIndex := -1
 
 	for i, stringChar := range stringSlice {
 		
-		if isClosedBracket(stringChar) {
-			if openBracketIndex == -1 {
-				return false, errors.New(fmt.Sprintf('Unexpected %s at position %s'), stringChar, i)
+		if isClosed, bracketType := isClosedBracket(stringChar); isClosed {
+			fmt.Printf("BracketType open: %s, openBracketIndex: %d\n", bracketType.Open, openBracketIndex)
+			if (openBracketIndex > -1) && (bracketType.Open == stringSlice[openBracketIndex]) {
+				fmt.Println("Closed bracket")
+				openBracketIndex = -1
 			} else {
-				//make sure open and close match type
+				
+				return false, errors.New(fmt.Sprintf("Unexpected %s ", stringChar, i))
+			}
+		} else if isOpen,_ := isOpenBracket(stringChar); isOpen {
+			if openBracketIndex == -1 {
+				openBracketIndex = i
+			} else {
+				_, validateErr := validateBrackets(stringSlice[i:])
+	
+				if validateErr != nil {
+					return false, validateErr
+				}
 			}
 
-		} else if isOpenBracket(stringChar) {
-			openBracketIndex = i
-			isValid, validateErr := validateBrackets()
-
-			if validateErr != nil {
-				return false, validateErr
-			}
 		}
 	}
 
@@ -52,14 +66,48 @@ func validateBrackets (stringSlice []string) (bool, error) {
 
 }
 
-func isClosedBracket(charString string) bool {
 
+
+func isClosedBracket(charString string) (bool, Bracket) {
+	for _,bracket := range bracketTypes {
+		if bracket.Close == charString {
+			return true, bracket
+		}
+	}
+	return false, Bracket{}
 }
 
-func isOpenBracket(charString string) bool {
-
+func isOpenBracket(charString string) (bool, Bracket) {
+	for _,bracket := range bracketTypes {
+		if bracket.Open == charString {
+			return true, bracket
+		}
+	}
+	return false, Bracket{}
 }
 
-//check if bracket/paren/brace
-//if opening then find closing
-//
+
+
+type Bracket struct {
+	Open string
+	Close string
+	Type string
+}
+
+var bracketTypes = []Bracket {
+	Bracket {
+		Open: "{",
+		Close: "}",
+		Type: "curly",
+	},
+	Bracket {
+		Open: "[",
+		Close: "]",
+		Type: "square",
+	},
+	Bracket {
+		Open: "(",
+		Close: ")",
+		Type: "paren",
+	},
+}
